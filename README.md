@@ -26,9 +26,28 @@ Make Git operations smoother and more intuitive. This WPF-based GUI application 
 ---
 
 ## 📁 フォルダ構成 / Folder Structure
+
+```
 GitManagerApp/
-├── MainWindow.xaml
-├── MainWindow.xaml.cs
-├── pull_push_schedule.json
-├── recent_projects.json
-└── icon.ico
+├── .gitignore
+├── GitManagerApp.sln
+├── LICENSE
+├── README.md
+├── GitManagerApp/
+│   ├── App.xaml
+│   ├── App.xaml.cs
+│   ├── GitExecutor.cs
+│   ├── GitManagerApp.csproj
+│   ├── MainWindow.xaml
+│   ├── MainWindow.xaml.cs
+│   ├── Resources/
+│   │   ├── DarkTheme.xaml
+│   │   └── LightTheme.xaml
+│   ├── Services/
+│   │   ├── AppDataService.cs
+│   │   ├── DropHandler.cs
+│   │   ├── GroupRenderer.cs
+│   │   ├── IconLoader.cs
+│   │   └── ThemeSwitcher.cs
+│   └── app_launcher_icon.ico
+```
