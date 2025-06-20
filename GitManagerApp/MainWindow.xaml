@@ -22,6 +22,7 @@
                 <ComboBox x:Name="ActionComboBox" Margin="0,0,0,10">
                     <ComboBoxItem>初回 push</ComboBoxItem>
                     <ComboBoxItem>通常 pull</ComboBoxItem>
+                    <ComboBoxItem>強制 pull</ComboBoxItem>
                     <ComboBoxItem>pull + push（PR対応）</ComboBoxItem>
                     <ComboBoxItem>ブランチ一覧表示</ComboBoxItem>
                     <ComboBoxItem>ブランチ削除</ComboBoxItem>

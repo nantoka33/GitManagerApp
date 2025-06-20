@@ -144,7 +144,46 @@ namespace GitManagerApp
 
                 case "通常 pull":
                     Log(GitExecutor.Run($"checkout {DEFAULT_BRANCH}", targetDir, out _));
-                    Log(GitExecutor.Run($"pull origin {DEFAULT_BRANCH}", targetDir, out _));
+                    var resultLog = GitExecutor.Run($"pull origin {DEFAULT_BRANCH}", targetDir, out _);
+                    if (resultLog.Contains("Fast-forward"))
+                    {
+                        Log(resultLog);
+                        Log("更新完了しました");
+                        Log("リモートリポジトリは最新状態です。");
+                    }
+                    else if (resultLog.Contains("Already up to date."))
+                    {
+                        Log(resultLog);
+                        Log("リモートリポジトリは最新状態です。");
+                    }
+                    else
+                    {
+                        Log(resultLog);
+                        Log("更新失敗しました。");
+                    }
+                    break;
+
+                case "強制 pull":
+                    Log(GitExecutor.Run($"checkout {DEFAULT_BRANCH}", targetDir, out _));
+                    resultLog = GitExecutor.Run($"pull origin {DEFAULT_BRANCH}", targetDir, out _);
+                    if (resultLog.Contains("Fast-forward"))
+                    {
+                        Log(resultLog);
+                        Log("更新完了しました");
+                        Log("リモートリポジトリは最新状態です。");
+                    }
+                    else
+                    {
+                        Log(resultLog);
+                        Log("更新失敗しました。");
+                        Log("現在の変更をStashに格納し、強制的にpullします。");
+                        Log(GitExecutor.Run("stash", targetDir, out _));
+                        Log("一時変更を退避しました。");
+                        Log(GitExecutor.Run($"pull origin {DEFAULT_BRANCH}", targetDir, out _));
+                        Log("強制pull完了しました。");
+                        Log(GitExecutor.Run("stash pop", targetDir, out _));
+                        Log("一時変更を適用しました。");
+                    }
                     break;
 
                 case "pull + push（PR対応）":
@@ -163,15 +202,19 @@ namespace GitManagerApp
                     break;
 
                 case "ブランチ一覧表示":
+                    Log("ブランチ一覧を更新します。");
                     Log(GitExecutor.Run("branch && git branch -r", targetDir, out _));
                     break;
 
                 case "ブランチ削除":
+                    if (!string.IsNullOrWhiteSpace(deleteBranchName) && !deleteBranchName.StartsWith("feature/"))
+                        deleteBranchName = "feature/" + deleteBranchName;
                     if (string.IsNullOrWhiteSpace(deleteBranchName))
                     {
                         Log("削除するブランチ名を入力してください。");
                         return;
                     }
+                    Log($"指定ブランチを削除します。 : {deleteBranchName}");
                     Log(GitExecutor.Run($"branch -d {deleteBranchName}", targetDir, out _));
                     break;
 
@@ -182,6 +225,8 @@ namespace GitManagerApp
                         return;
                     }
                     Log(GitExecutor.Run($"checkout {renameBranchName}", targetDir, out _));
+                    Log("ブランチを変更しました。");
+                    Log(GitExecutor.Run("branch && git branch -r", targetDir, out _));
                     break;
 
                 case "ブランチ作成":
@@ -207,8 +252,8 @@ namespace GitManagerApp
                 case "削除済みリモートブランチの削除":
                     Log(GitExecutor.Run("fetch --prune", targetDir, out _));
                     Log("リポジトリの削除済みリモートブランチをローカルから削除しました。");
-                    Log("リモートブランチ一覧を更新します。");
-                    Log(GitExecutor.Run("remote branch -r", targetDir, out _));
+                    Log("ブランチ一覧を更新します。");
+                    Log(GitExecutor.Run("branch && git branch -r", targetDir, out _));
                     break;
 
                 case "一時変更破棄(pull前)":
