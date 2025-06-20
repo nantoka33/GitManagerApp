@@ -40,3 +40,6 @@ iconcache/
 # Others
 Thumbs.db
 Desktop.ini
+# Exclude local release scripts and schedule
+make_release.bat
+pull_push_schedule.json
