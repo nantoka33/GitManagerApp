@@ -1,19 +1,20 @@
 ﻿<Window x:Class="GitManagerApp.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Git操作ツール" Height="804" Width="1238"
+        Title="Git操作ツール" Height="837" Width="1238"
         Loaded="Window_Loaded"
         Background="#1e1e1e"
-        Foreground="White">
+        Foreground="White"
+        MinWidth="1000">
     <Grid Margin="10">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="500" />
+            <ColumnDefinition Width="3*" />
+            <ColumnDefinition Width="2*" />
         </Grid.ColumnDefinitions>
 
         <!-- 左側：メイン操作パネル -->
         <ScrollViewer VerticalScrollBarVisibility="Auto" Grid.Column="0">
-            <StackPanel Margin="0,0,10,20" Width="676">
+            <StackPanel Margin="0,0,10,20">
                 <TextBlock Text="プロジェクト名 (履歴付き)" Margin="0,5,0,0" />
                 <ComboBox x:Name="ProjectComboBox" IsEditable="True" Margin="0,0,0,10" />
 
@@ -24,6 +25,10 @@
                     <ComboBoxItem>pull + push（PR対応）</ComboBoxItem>
                     <ComboBoxItem>ブランチ一覧表示</ComboBoxItem>
                     <ComboBoxItem>ブランチ削除</ComboBoxItem>
+                    <ComboBoxItem>ブランチ変更</ComboBoxItem>
+                    <ComboBoxItem>ブランチ作成</ComboBoxItem>
+                    <ComboBoxItem>ブランチマージ</ComboBoxItem>
+                    <ComboBoxItem>削除済みリモートブランチの削除</ComboBoxItem>
                 </ComboBox>
 
                 <TextBlock Text="リモートリポジトリURL (初回push用)" />
@@ -67,7 +72,7 @@
         </ScrollViewer>
 
         <!-- 右側：削除欄とログ -->
-        <StackPanel Grid.Column="1" Margin="0,0,22,0">
+        <StackPanel Grid.Column="1">
             <TextBlock Text="削除するブランチ名" Margin="0,0,0,5" />
             <TextBox x:Name="DeleteBranchBox" Margin="0,0,0,10" Background="#252526" Foreground="White" />
 

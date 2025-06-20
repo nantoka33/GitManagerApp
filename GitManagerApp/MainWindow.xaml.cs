@@ -94,6 +94,8 @@ namespace GitManagerApp
             string selectedAction = (ActionComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? string.Empty;
             string commitMessage = CommitMessageBox.Text.Trim();
             string branchName = BranchNameBox.Text.Trim();
+            string deleteBranchName = DeleteBranchBox.Text.Trim();
+            string renameBranchName = RenameBranchBox.Text.Trim();
             string scheduleFilePath = GetScheduleFilePath();
 
             if (selectedAction == "pull + push（PR対応）" && ScheduleDatePicker.SelectedDate != null)
@@ -141,6 +143,7 @@ namespace GitManagerApp
                     break;
 
                 case "通常 pull":
+                    Log(GitExecutor.Run($"checkout {DEFAULT_BRANCH}", targetDir, out _));
                     Log(GitExecutor.Run($"pull origin {DEFAULT_BRANCH}", targetDir, out _));
                     break;
 
@@ -164,9 +167,109 @@ namespace GitManagerApp
                     break;
 
                 case "ブランチ削除":
-                    Log(GitExecutor.Run("branch -d branch_name", targetDir, out _));
+                    if (string.IsNullOrWhiteSpace(deleteBranchName))
+                    {
+                        Log("削除するブランチ名を入力してください。");
+                        return;
+                    }
+                    Log(GitExecutor.Run($"branch -d {deleteBranchName}", targetDir, out _));
                     break;
 
+                case "ブランチ変更":
+                    if (string.IsNullOrWhiteSpace(renameBranchName))
+                    {
+                        Log("切り替えるブランチ名を入力してください。");
+                        return;
+                    }
+                    Log(GitExecutor.Run($"checkout {renameBranchName}", targetDir, out _));
+                    break;
+
+                case "ブランチ作成":
+                    if (string.IsNullOrWhiteSpace(branchName))
+                    {
+                        Log("新しいブランチ名を入力してください。");
+                        return;
+                    }
+                    if (!branchName.StartsWith("feature/"))
+                        branchName = "feature/" + branchName;
+                    Log(GitExecutor.Run($"checkout -b {branchName}", targetDir, out _));
+                    break;
+
+                case "ブランチマージ":
+                    if (string.IsNullOrWhiteSpace(branchName))
+                    {
+                        Log("マージするブランチ名を入力してください。");
+                        return;
+                    }
+                    Log(GitExecutor.Run($"merge {branchName}", targetDir, out _));
+                    break;
+
+                case "削除済みリモートブランチの削除":
+                    Log(GitExecutor.Run("fetch --prune", targetDir, out _));
+                    Log("リポジトリの削除済みリモートブランチをローカルから削除しました。");
+                    Log("リモートブランチ一覧を更新します。");
+                    Log(GitExecutor.Run("remote branch -r", targetDir, out _));
+                    break;
+                /* 
+                 * あとで実装
+                 * 
+                case "リモートリポジトリURL変更":
+                    if (string.IsNullOrWhiteSpace(RemoteUrlBox.Text.Trim()))
+                    {
+                        Log("新しいリモートリポジトリURLを入力してください。");
+                        return;
+                    }
+                    Log(GitExecutor.Run($"remote set-url origin {RemoteUrlBox.Text.Trim()}", targetDir, out _));
+                    break;
+
+                case "リモートリポジトリURL表示":
+                    Log(GitExecutor.Run("remote -v", targetDir, out _));
+                    break;
+
+                case "リモートリポジトリ削除":
+                    Log(GitExecutor.Run("remote remove origin", targetDir, out _));
+                    break;
+
+                case "リモートリポジトリ一覧表示":
+                    Log(GitExecutor.Run("remote", targetDir, out _));
+                    break;
+
+                case "リモートリポジトリ追加":
+                    remoteUrl = RemoteUrlBox.Text.Trim();
+                    if (string.IsNullOrWhiteSpace(remoteUrl))
+                    {
+                        Log("リモートリポジトリURLを入力してください。");
+                        return;
+                    }
+                    Log(GitExecutor.Run($"remote add origin {remoteUrl}", targetDir, out _));
+                    break;
+
+                case "リモートリポジトリのブランチ一覧表示":
+                    Log(GitExecutor.Run("branch -r", targetDir, out _));
+                    break;
+
+                case "リモートリポジトリのブランチをローカルにチェックアウト":
+                    Log(GitExecutor.Run("fetch origin", targetDir, out _));
+                    Log(GitExecutor.Run($"checkout -b {branchName} origin/{branchName}", targetDir, out _));
+                    break;
+
+                case "リモートリポジトリのブランチをローカルにマージ":
+                    Log(GitExecutor.Run($"merge origin/{branchName}", targetDir, out _));
+                    break;
+
+                case "リモートリポジトリのブランチをローカルにフェッチ":
+                    Log(GitExecutor.Run("fetch origin", targetDir, out _));
+                    break;
+
+                case "リモートリポジトリのブランチをローカルに削除":
+                    if (string.IsNullOrWhiteSpace(branchName))
+                    {
+                        Log("削除するブランチ名を入力してください。");
+                        return;
+                    }
+                    Log(GitExecutor.Run($"branch -d {branchName}", targetDir, out _));
+                    break;
+                */
                 default:
                     Log("操作を選択してください。");
                     break;
