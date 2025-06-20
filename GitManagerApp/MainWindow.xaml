@@ -1,0 +1,69 @@
+﻿<Window x:Class="GitManagerApp.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Git操作ツール" Height="802" Width="756"
+        Loaded="Window_Loaded"
+        Background="#1e1e1e"
+        Foreground="White">
+    <Grid Margin="10">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="0,0,0,20" RenderTransformOrigin="0.5,0.5" Width="676">
+                <StackPanel.RenderTransform>
+                    <TransformGroup>
+                        <ScaleTransform/>
+                        <SkewTransform AngleY="0.203"/>
+                        <RotateTransform/>
+                        <TranslateTransform Y="1.247"/>
+                    </TransformGroup>
+                </StackPanel.RenderTransform>
+                <TextBlock Text="プロジェクト名 (履歴付き)" Margin="0,5,0,0" />
+                <ComboBox x:Name="ProjectComboBox" IsEditable="True" Margin="0,0,0,10">
+                </ComboBox>
+
+                <TextBlock Text="操作選択" />
+                <ComboBox x:Name="ActionComboBox" Margin="0,0,0,10">
+                    <ComboBoxItem>初回 push</ComboBoxItem>
+                    <ComboBoxItem>通常 pull</ComboBoxItem>
+                    <ComboBoxItem>pull + push（PR対応）</ComboBoxItem>
+                    <ComboBoxItem>ブランチ一覧表示</ComboBoxItem>
+                    <ComboBoxItem>ブランチ削除</ComboBoxItem>
+                </ComboBox>
+
+                <TextBlock Text="コミットメッセージ" />
+                <TextBox x:Name="CommitMessageBox" Margin="0,0,0,10" Background="#252526" Foreground="White"/>
+
+                <TextBlock Text="ブランチ名 (PR対応用)" />
+                <TextBox x:Name="BranchNameBox" Margin="0,0,0,10" Background="#252526" Foreground="White"/>
+
+                <TextBlock Text="pull+push 実行日時" />
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                    <DatePicker x:Name="ScheduleDatePicker" Width="150" Background="#2d2d30" Foreground="White">
+                        <DatePicker.Resources>
+                            <Style TargetType="DatePickerTextBox">
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter Property="Background" Value="#2d2d30"/>
+                            </Style>
+                        </DatePicker.Resources>
+                    </DatePicker>
+                    <TextBox x:Name="ScheduleTimeBox" Width="100" Margin="10,0,0,0" Text="HH:mm:ss" Background="#252526" Foreground="White"/>
+                </StackPanel>
+
+                <WrapPanel Margin="0,0,0,10">
+                    <Button Content="実行" Click="Execute_Click" Width="100" Height="30" Margin="0,0,10,0" Background="#0e639c" Foreground="White"/>
+                    <Button Content="予約一覧表示" Click="ShowSchedule_Click" Width="150" Height="30" Margin="0,0,10,0" Background="#0e639c" Foreground="White"/>
+                    <Button Content="未実行予約をすべて削除" Click="ClearUnexecutedSchedules_Click" Width="200" Height="30" Background="#c53c3c" Foreground="White"/>
+                </WrapPanel>
+
+                <TextBlock Text="プロジェクトフィルター（空欄は全件表示）" />
+                <ComboBox x:Name="FilterProjectComboBox" IsEditable="True" Width="300" Margin="0,0,0,10">
+                </ComboBox>
+
+                <TextBlock Text="未実行予約の一覧 (ダブルクリックで削除)" />
+                <ListBox x:Name="ScheduleListBox" Height="150" Margin="0,0,0,10" Background="#1e1e1e" Foreground="White" BorderBrush="Gray" BorderThickness="1" MouseDoubleClick="ScheduleListBox_MouseDoubleClick"/>
+
+                <TextBlock Text="ログ" />
+                <TextBox x:Name="LogBox" Height="200" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" IsReadOnly="True" Background="#1e1e1e" Foreground="White" BorderBrush="Gray" BorderThickness="1"/>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Window>
