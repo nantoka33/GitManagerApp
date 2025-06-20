@@ -1,10 +1,9 @@
-﻿using Microsoft.Win32;
+﻿using GitManagerApp.Models;
+using GitManagerApp.Services;
+using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
@@ -18,49 +17,41 @@ namespace GitManagerApp
         private const string RecentFilePath = "recent_projects.json";
         private const string ConfigFilePath = "config.json";
 
-        private List<string> recentProjects = new();
         private List<GitSchedule> schedules = new();
         private DispatcherTimer scheduleTimer;
 
-        public class AppConfig
+        private ConfigService configService;
+        private ScheduleManager? scheduleManager;
+        private RecentProjectService recentProjectService;
+
+        public MainWindow()
         {
-            public string? ScheduleFilePath { get; set; }
+            InitializeComponent();
+            configService = new ConfigService(ConfigFilePath);
+            recentProjectService = new RecentProjectService(RecentFilePath);
+            scheduleTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(10)
+            };
+            scheduleTimer.Tick += ScheduleTimer_Tick;
+            scheduleTimer.Start();
         }
 
-        private void SaveConfig()
+        private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            try
-            {
-                var config = new AppConfig { ScheduleFilePath = ScheduleFilePathBox.Text.Trim() };
-                File.WriteAllText(ConfigFilePath, JsonSerializer.Serialize(config));
-            }
-            catch (Exception ex)
-            {
-                Log($"[設定保存エラー] {ex.Message}");
-            }
-        }
+            var config = configService.Load();
+            if (!string.IsNullOrWhiteSpace(config?.ScheduleFilePath))
+                ScheduleFilePathBox.Text = config.ScheduleFilePath;
 
-        private void LoadConfig()
-        {
-            try
-            {
-                if (File.Exists(ConfigFilePath))
-                {
-                    var json = File.ReadAllText(ConfigFilePath);
-                    var config = JsonSerializer.Deserialize<AppConfig>(json);
-                    if (!string.IsNullOrWhiteSpace(config?.ScheduleFilePath))
-                        ScheduleFilePathBox.Text = config.ScheduleFilePath;
-                }
-            }
-            catch (Exception ex)
-            {
-                Log($"[設定読み込みエラー] {ex.Message}");
-            }
+            recentProjectService.PopulateComboBox(ProjectComboBox);
+
+            scheduleManager = new ScheduleManager(GetScheduleFilePath());
+            schedules = scheduleManager.Load();
         }
 
         private void OpenScheduleFileDialog_Click(object sender, RoutedEventArgs e)
         {
-            var dialog = new SaveFileDialog()
+            var dialog = new SaveFileDialog
             {
                 Title = "スケジュール保存ファイルを選択",
                 Filter = "JSON ファイル (*.json)|*.json",
@@ -71,28 +62,12 @@ namespace GitManagerApp
             if (dialog.ShowDialog() == true)
             {
                 ScheduleFilePathBox.Text = dialog.FileName;
-                SaveConfig();
+                configService.Save(new AppConfig { ScheduleFilePath = dialog.FileName });
                 Log($"スケジュール保存先を設定: {dialog.FileName}");
+
+                scheduleManager = new ScheduleManager(dialog.FileName);
+                schedules = scheduleManager.Load();
             }
-        }
-
-        public MainWindow()
-        {
-            InitializeComponent();
-            scheduleTimer = new DispatcherTimer();
-            scheduleTimer.Interval = TimeSpan.FromSeconds(10);
-            scheduleTimer.Tick += ScheduleTimer_Tick;
-            scheduleTimer.Start();
-        }
-
-        private string GetScheduleFilePath() =>
-            string.IsNullOrWhiteSpace(ScheduleFilePathBox.Text) ? "pull_push_schedule.json" : ScheduleFilePathBox.Text.Trim();
-
-        private void Window_Loaded(object sender, RoutedEventArgs e)
-        {
-            LoadConfig();
-            LoadRecentProjects();
-            LoadSchedules();
         }
 
         private void Execute_Click(object sender, RoutedEventArgs e)
@@ -104,8 +79,9 @@ namespace GitManagerApp
                 return;
             }
 
-            SaveRecentProject(projectName);
-            SaveConfig();
+            recentProjectService.Save(projectName);
+            recentProjectService.PopulateComboBox(ProjectComboBox);
+            configService.Save(new AppConfig { ScheduleFilePath = GetScheduleFilePath() });
 
             string targetDir = Path.Combine(BASE_DIR, projectName);
             if (!Directory.Exists(targetDir))
@@ -135,9 +111,7 @@ namespace GitManagerApp
                     return;
                 }
                 if (!branchName.StartsWith("feature/"))
-                {
                     branchName = "feature/" + branchName;
-                }
 
                 schedules.Add(new GitSchedule
                 {
@@ -147,14 +121,8 @@ namespace GitManagerApp
                     CommitMessage = commitMessage,
                     ExecuteAt = scheduleTime
                 });
-                try
-                {
-                    File.WriteAllText(scheduleFilePath, JsonSerializer.Serialize(schedules));
-                }
-                catch (Exception ex)
-                {
-                    Log($"[予約保存エラー] {ex.Message}");
-                }
+
+                scheduleManager?.Save(schedules);
                 Log($"pull+push を {scheduleTime} に予約しました。");
                 return;
             }
@@ -169,11 +137,11 @@ namespace GitManagerApp
                         Log("リモートリポジトリURLを入力してください。");
                         return;
                     }
-                    RunGit($"init && git add . && git commit -m \"{commitMessage}\" && git remote add origin {remoteUrl} && git branch -M {DEFAULT_BRANCH} && git push -u origin {DEFAULT_BRANCH}", targetDir);
+                    Log(GitExecutor.Run($"init && git add . && git commit -m \"{commitMessage}\" && git remote add origin {remoteUrl} && git branch -M {DEFAULT_BRANCH} && git push -u origin {DEFAULT_BRANCH}", targetDir, out _));
                     break;
 
                 case "通常 pull":
-                    RunGit($"pull origin {DEFAULT_BRANCH}", targetDir);
+                    Log(GitExecutor.Run($"pull origin {DEFAULT_BRANCH}", targetDir, out _));
                     break;
 
                 case "pull + push（PR対応）":
@@ -183,22 +151,20 @@ namespace GitManagerApp
                         return;
                     }
                     if (!branchName.StartsWith("feature/"))
-                    {
                         branchName = "feature/" + branchName;
-                    }
-                    RunGit("fetch origin", targetDir);
-                    RunGit($"checkout -b {branchName}", targetDir);
-                    RunGit("add .", targetDir);
-                    RunGit($"commit -m \"{commitMessage}\"", targetDir);
-                    RunGit($"push -u origin {branchName}", targetDir);
+                    Log(GitExecutor.Run("fetch origin", targetDir, out _));
+                    Log(GitExecutor.Run($"checkout -b {branchName}", targetDir, out _));
+                    Log(GitExecutor.Run("add .", targetDir, out _));
+                    Log(GitExecutor.Run($"commit -m \"{commitMessage}\"", targetDir, out _));
+                    Log(GitExecutor.Run($"push -u origin {branchName}", targetDir, out _));
                     break;
 
                 case "ブランチ一覧表示":
-                    RunGit("branch && git branch -r", targetDir);
+                    Log(GitExecutor.Run("branch && git branch -r", targetDir, out _));
                     break;
 
                 case "ブランチ削除":
-                    RunGit("branch -d branch_name", targetDir);
+                    Log(GitExecutor.Run("branch -d branch_name", targetDir, out _));
                     break;
 
                 default:
@@ -210,29 +176,18 @@ namespace GitManagerApp
         private void ScheduleTimer_Tick(object? sender, EventArgs e)
         {
             DateTime now = DateTime.Now;
-            string scheduleFilePath = GetScheduleFilePath();
-            var toRun = schedules.Where(s => !s.Executed && s.ExecuteAt <= now).ToList();
-
-            foreach (var schedule in toRun)
+            var toRun = schedules.FindAll(s => !s.Executed && s.ExecuteAt <= now);
+            foreach (var s in toRun)
             {
-                Log($"スケジュール実行: {schedule.ProjectName} / {schedule.BranchName}");
-                if (!string.IsNullOrWhiteSpace(schedule.TargetDir)) Directory.SetCurrentDirectory(schedule.TargetDir);
-                RunGit("fetch origin", schedule.TargetDir);
-                RunGit($"checkout -b {schedule.BranchName}", schedule.TargetDir);
-                RunGit("add .", schedule.TargetDir);
-                RunGit($"commit -m \"{schedule.CommitMessage}\"", schedule.TargetDir);
-                RunGit($"push -u origin {schedule.BranchName}", schedule.TargetDir);
-                schedule.Executed = true;
+                Log($"スケジュール実行: {s.ProjectName} / {s.BranchName}");
+                Log(GitExecutor.Run("fetch origin", s.TargetDir, out _));
+                Log(GitExecutor.Run($"checkout -b {s.BranchName}", s.TargetDir, out _));
+                Log(GitExecutor.Run("add .", s.TargetDir, out _));
+                Log(GitExecutor.Run($"commit -m \"{s.CommitMessage}\"", s.TargetDir, out _));
+                Log(GitExecutor.Run($"push -u origin {s.BranchName}", s.TargetDir, out _));
+                s.Executed = true;
             }
-
-            try
-            {
-                File.WriteAllText(scheduleFilePath, JsonSerializer.Serialize(schedules));
-            }
-            catch (Exception ex)
-            {
-                Log($"[スケジュール保存エラー] {ex.Message}");
-            }
+            scheduleManager?.Save(schedules);
         }
 
         private void ShowSchedule_Click(object sender, RoutedEventArgs e)
@@ -244,148 +199,29 @@ namespace GitManagerApp
             {
                 if (!string.IsNullOrWhiteSpace(filter) && !s.ProjectName?.Equals(filter, StringComparison.OrdinalIgnoreCase) == true)
                     continue;
-
                 string label = $"{s.ExecuteAt:yyyy-MM-dd HH:mm:ss} | {s.ProjectName} / {s.BranchName} [{(s.Executed ? "実行済" : "未実行")}]";
                 ScheduleListBox.Items.Add(label);
                 Log("・" + label);
             }
         }
 
-        private void RunGit(string command, string workingDir)
-        {
-            var psi = new ProcessStartInfo("cmd.exe", $"/c git {command}")
-            {
-                WorkingDirectory = workingDir,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-
-            try
-            {
-                using var process = Process.Start(psi);
-                if (process == null)
-                {
-                    Log("git プロセスの起動に失敗しました。");
-                    return;
-                }
-
-                string output = process.StandardOutput.ReadToEnd();
-                string error = process.StandardError.ReadToEnd();
-                process.WaitForExit();
-
-                Log(string.IsNullOrWhiteSpace(output) ? error : output);
-            }
-            catch (Exception ex)
-            {
-                Log($"[Git実行エラー] {ex.Message}");
-            }
-        }
-
-        private void Log(string text)
-        {
-            LogBox.AppendText(text + "\n");
-            LogBox.ScrollToEnd();
-        }
-
-        private void SaveRecentProject(string name)
-        {
-            if (string.IsNullOrWhiteSpace(name)) return;
-
-            recentProjects.Remove(name);
-            recentProjects.Insert(0, name);
-
-            if (recentProjects.Count > 5)
-                recentProjects = recentProjects.Take(5).ToList();
-
-            try
-            {
-                File.WriteAllText(RecentFilePath, JsonSerializer.Serialize(recentProjects));
-            }
-            catch (Exception ex)
-            {
-                Log($"[履歴保存エラー] {ex.Message}");
-            }
-
-            ProjectComboBox.Items.Clear();
-            foreach (var item in recentProjects)
-                ProjectComboBox.Items.Add(item);
-        }
-
-        private void LoadRecentProjects()
-        {
-            try
-            {
-                if (File.Exists(RecentFilePath))
-                {
-                    var json = File.ReadAllText(RecentFilePath);
-                    recentProjects = JsonSerializer.Deserialize<List<string>>(json) ?? new();
-
-                    foreach (var name in recentProjects)
-                        ProjectComboBox.Items.Add(name);
-                }
-            }
-            catch (Exception ex)
-            {
-                Log($"[履歴読み込みエラー] {ex.Message}");
-            }
-        }
-
-        private void LoadSchedules()
-        {
-            string scheduleFilePath = GetScheduleFilePath();
-            try
-            {
-                if (File.Exists(scheduleFilePath))
-                {
-                    var json = File.ReadAllText(scheduleFilePath);
-                    schedules = JsonSerializer.Deserialize<List<GitSchedule>>(json) ?? new();
-                }
-            }
-            catch (Exception ex)
-            {
-                Log($"[スケジュール読み込みエラー] {ex.Message}");
-            }
-        }
-
         private void ClearUnexecutedSchedules_Click(object sender, RoutedEventArgs e)
         {
-            string scheduleFilePath = GetScheduleFilePath();
             int before = schedules.Count;
-            schedules = schedules.Where(s => s.Executed).ToList();
-            try
-            {
-                File.WriteAllText(scheduleFilePath, JsonSerializer.Serialize(schedules));
-                Log($"未実行の予約 {before - schedules.Count} 件を削除しました。");
-            }
-            catch (Exception ex)
-            {
-                Log($"[削除保存エラー] {ex.Message}");
-            }
+            scheduleManager?.RemoveExecuted(ref schedules);
+            Log($"未実行の予約 {before - schedules.Count} 件を削除しました。");
         }
 
         private void ScheduleListBox_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            string scheduleFilePath = GetScheduleFilePath();
             if (ScheduleListBox.SelectedItem is string selected)
             {
-                var target = schedules.FirstOrDefault(s =>
-                    $"{s.ExecuteAt:yyyy-MM-dd HH:mm:ss} | {s.ProjectName} / {s.BranchName} [{(s.Executed ? "実行済" : "未実行")}]" == selected);
-
+                var target = schedules.Find(s => $"{s.ExecuteAt:yyyy-MM-dd HH:mm:ss} | {s.ProjectName} / {s.BranchName} [{(s.Executed ? "実行済" : "未実行")}]" == selected);
                 if (target != null && !target.Executed)
                 {
                     if (MessageBox.Show($"この予約を削除しますか？\n{selected}", "確認", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
                     {
-                        schedules.Remove(target);
-                        try
-                        {
-                            File.WriteAllText(scheduleFilePath, JsonSerializer.Serialize(schedules));
-                        }
-                        catch (Exception ex)
-                        {
-                            Log($"[削除保存エラー] {ex.Message}");
-                        }
+                        scheduleManager?.RemoveSchedule(schedules, target);
                         Log($"予約を削除しました: {selected}");
                         ScheduleListBox.Items.Remove(selected);
                     }
@@ -396,15 +232,14 @@ namespace GitManagerApp
                 }
             }
         }
-    }
 
-    public class GitSchedule
-    {
-        public string? ProjectName { get; set; }
-        public required string TargetDir { get; set; }
-        public string? BranchName { get; set; }
-        public string? CommitMessage { get; set; }
-        public DateTime ExecuteAt { get; set; }
-        public bool Executed { get; set; }
+        private string GetScheduleFilePath() =>
+            string.IsNullOrWhiteSpace(ScheduleFilePathBox.Text) ? "pull_push_schedule.json" : ScheduleFilePathBox.Text.Trim();
+
+        private void Log(string text)
+        {
+            LogBox.AppendText(text + "\n");
+            LogBox.ScrollToEnd();
+        }
     }
 }
