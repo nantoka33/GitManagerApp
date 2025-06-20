@@ -80,7 +80,6 @@ namespace GitManagerApp
             }
 
             recentProjectService.Save(projectName);
-            recentProjectService.PopulateComboBox(ProjectComboBox);
             configService.Save(new AppConfig { ScheduleFilePath = GetScheduleFilePath() });
 
             string targetDir = Path.Combine(BASE_DIR, projectName);
