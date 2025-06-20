@@ -43,3 +43,5 @@ Desktop.ini
 # Exclude local release scripts and schedule
 make_release.bat
 pull_push_schedule.json
+recent_projects.json
+config.json
