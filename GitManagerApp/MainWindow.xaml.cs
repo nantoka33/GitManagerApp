@@ -210,6 +210,12 @@ namespace GitManagerApp
                     Log("リモートブランチ一覧を更新します。");
                     Log(GitExecutor.Run("remote branch -r", targetDir, out _));
                     break;
+
+                case "一時変更破棄(pull前)":
+                    Log(GitExecutor.Run("stash", targetDir, out _));
+                    Log(GitExecutor.Run("stash drop", targetDir, out _));
+                    Log("一時変更を破棄しました。");
+                    break;
                 /* 
                  * あとで実装
                  * 

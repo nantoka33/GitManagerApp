@@ -29,6 +29,7 @@
                     <ComboBoxItem>ブランチ作成</ComboBoxItem>
                     <ComboBoxItem>ブランチマージ</ComboBoxItem>
                     <ComboBoxItem>削除済みリモートブランチの削除</ComboBoxItem>
+                    <ComboBoxItem>一時変更破棄(pull前)</ComboBoxItem>
                 </ComboBox>
 
                 <TextBlock Text="リモートリポジトリURL (初回push用)" />
