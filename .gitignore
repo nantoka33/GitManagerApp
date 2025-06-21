@@ -45,3 +45,5 @@ make_release.bat
 pull_push_schedule.json
 recent_projects.json
 config.json
+
+!gitmanager_icon.ico
