@@ -1,0 +1,50 @@
+name: Build GitManagerApp
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  Solution_Name: GitManagerApp.sln
+  Project_Path: GitManagerApp/GitManagerApp.csproj
+  Output_Dir: GitManagerApp/bin/Release/net8.0-windows
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    strategy:
+      matrix:
+        configuration: [Debug, Release]
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Restore packages
+      run: dotnet restore ${{ env.Solution_Name }}
+
+    - name: Build the app
+      run: dotnet build ${{ env.Project_Path }} --configuration ${{ matrix.configuration }} --no-restore
+
+    - name: Run tests
+      run: dotnet test GitManagerApp.Tests/GitManagerApp.Tests.csproj --configuration ${{ matrix.configuration }}
+
+    - name: Upload build artifacts
+      if: matrix.configuration == 'Release'
+      uses: actions/upload-artifact@v4
+      with:
+        name: GitManagerApp-Build
+        path: ${{ env.Output_Dir }}/*
