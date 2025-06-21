@@ -1,4 +1,5 @@
-﻿using GitManagerApp.Models;
+﻿using GitManagerApp.Const;
+using GitManagerApp.Models;
 using GitManagerApp.Services;
 using Microsoft.Win32;
 using System;
@@ -12,25 +13,26 @@ using System.Windows.Threading;
 
 namespace GitManagerApp
 {
+    /// <summary>
+    /// GitManagerAppのメインウィンドウ
+    /// </summary>
     public partial class MainWindow : Window
     {
-        private const string BASE_DIR = "C:\\";
-        private const string DEFAULT_BRANCH = "main";
-        private const string RecentFilePath = "recent_projects.json";
-        private const string ConfigFilePath = "config.json";
-
+        #region property
         private List<GitSchedule> schedules = new();
         private DispatcherTimer scheduleTimer;
 
         private ConfigService configService;
         private ScheduleManager? scheduleManager;
         private RecentProjectService recentProjectService;
+        #endregion
 
+        #region constructor
         public MainWindow()
         {
             InitializeComponent();
-            configService = new ConfigService(ConfigFilePath);
-            recentProjectService = new RecentProjectService(RecentFilePath);
+            configService = new ConfigService(AppConstants.ConfigFilePath);
+            recentProjectService = new RecentProjectService(AppConstants.RecentFilePath);
             scheduleTimer = new DispatcherTimer
             {
                 Interval = TimeSpan.FromSeconds(10)
@@ -38,7 +40,9 @@ namespace GitManagerApp
             scheduleTimer.Tick += ScheduleTimer_Tick;
             scheduleTimer.Start();
         }
+        #endregion
 
+        #region event handlers
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             var config = configService.Load();
@@ -58,7 +62,7 @@ namespace GitManagerApp
                 Title = "スケジュール保存ファイルを選択",
                 Filter = "JSON ファイル (*.json)|*.json",
                 FileName = "pull_push_schedule.json",
-                InitialDirectory = BASE_DIR
+                InitialDirectory = AppConstants.BASE_DIR
             };
 
             if (dialog.ShowDialog() == true)
@@ -84,7 +88,7 @@ namespace GitManagerApp
             recentProjectService.Save(projectName);
             configService.Save(new AppConfig { ScheduleFilePath = GetScheduleFilePath() });
 
-            string targetDir = Path.Combine(BASE_DIR, projectName);
+            string targetDir = Path.Combine(AppConstants.BASE_DIR, projectName);
             if (!Directory.Exists(targetDir))
             {
                 Log($"エラー: フォルダ {targetDir} が存在しません。", Brushes.OrangeRed);
@@ -132,7 +136,7 @@ namespace GitManagerApp
 
             switch (selectedAction)
             {
-                case "初回 push":
+                case AppConstants.Action.FirastPush:
                     if (string.IsNullOrWhiteSpace(commitMessage)) commitMessage = "initial commit";
                     string remoteUrl = RemoteUrlBox.Text.Trim();
                     if (string.IsNullOrWhiteSpace(remoteUrl))
@@ -140,12 +144,12 @@ namespace GitManagerApp
                         Log("リモートリポジトリURLを入力してください。", Brushes.OrangeRed);
                         return;
                     }
-                    Log(GitExecutor.Run($"init && git add . && git commit -m \"{commitMessage}\" && git remote add origin {remoteUrl} && git branch -M {DEFAULT_BRANCH} && git push -u origin {DEFAULT_BRANCH}", targetDir, out _));
+                    Log(GitExecutor.Run($"init && git add . && git commit -m \"{commitMessage}\" && git remote add origin {remoteUrl} && git branch -M {AppConstants.DEFAULT_BRANCH} && git push -u origin {AppConstants.DEFAULT_BRANCH}", targetDir, out _));
                     break;
 
-                case "通常 pull":
-                    Log(GitExecutor.Run($"checkout {DEFAULT_BRANCH}", targetDir, out _));
-                    var resultLog = GitExecutor.Run($"pull origin {DEFAULT_BRANCH}", targetDir, out _);
+                case AppConstants.Action.NormalPull:
+                    Log(GitExecutor.Run($"checkout {AppConstants.DEFAULT_BRANCH}", targetDir, out _));
+                    var resultLog = GitExecutor.Run($"pull origin {AppConstants.DEFAULT_BRANCH}", targetDir, out _);
                     if (resultLog.Contains("Fast-forward"))
                     {
                         Log(resultLog);
@@ -164,9 +168,9 @@ namespace GitManagerApp
                     }
                     break;
 
-                case "強制 pull":
-                    Log(GitExecutor.Run($"checkout {DEFAULT_BRANCH}", targetDir, out _));
-                    resultLog = GitExecutor.Run($"pull origin {DEFAULT_BRANCH}", targetDir, out _);
+                case AppConstants.Action.ForcePull:
+                    Log(GitExecutor.Run($"checkout {AppConstants.DEFAULT_BRANCH}", targetDir, out _));
+                    resultLog = GitExecutor.Run($"pull origin {AppConstants.DEFAULT_BRANCH}", targetDir, out _);
                     if (resultLog.Contains("Fast-forward"))
                     {
                         Log(resultLog);
@@ -180,14 +184,14 @@ namespace GitManagerApp
                         Log("現在の変更をStashに格納し、強制的にpullします。", Brushes.OrangeRed);
                         Log(GitExecutor.Run("stash", targetDir, out _));
                         Log("一時変更を退避しました。", Brushes.LightGreen);
-                        Log(GitExecutor.Run($"pull origin {DEFAULT_BRANCH}", targetDir, out _));
+                        Log(GitExecutor.Run($"pull origin {AppConstants.DEFAULT_BRANCH}", targetDir, out _));
                         Log("強制pull完了しました。", Brushes.LightGreen);
                         Log(GitExecutor.Run("stash pop", targetDir, out _));
                         Log("一時変更を適用しました。", Brushes.LightGreen);
                     }
                     break;
 
-                case "pull + push（PR対応）":
+                case AppConstants.Action.PullAndPush:
                     if (string.IsNullOrWhiteSpace(branchName) || string.IsNullOrWhiteSpace(commitMessage))
                     {
                         Log("ブランチ名とコミットメッセージの両方を入力してください。", Brushes.OrangeRed);
@@ -217,12 +221,12 @@ namespace GitManagerApp
                     }
                     break;
 
-                case "ブランチ一覧表示":
+                case AppConstants.Action.BranchList:
                     Log("ブランチ一覧を更新します。", Brushes.LightGreen);
                     Log(GitExecutor.Run("branch && git branch -r", targetDir, out _));
                     break;
 
-                case "ブランチ削除":
+                case AppConstants.Action.DeleteBranch:
                     if (!string.IsNullOrWhiteSpace(deleteBranchName) && !deleteBranchName.StartsWith("feature/"))
                         deleteBranchName = "feature/" + deleteBranchName;
                     if (string.IsNullOrWhiteSpace(deleteBranchName))
@@ -234,7 +238,7 @@ namespace GitManagerApp
                     Log(GitExecutor.Run($"branch -d {deleteBranchName}", targetDir, out _));
                     break;
 
-                case "ブランチ変更":
+                case AppConstants.Action.ModifyBranch:
                     if (string.IsNullOrWhiteSpace(renameBranchName))
                     {
                         Log("切り替えるブランチ名を入力してください。", Brushes.OrangeRed);
@@ -245,7 +249,7 @@ namespace GitManagerApp
                     Log(GitExecutor.Run("branch && git branch -r", targetDir, out _));
                     break;
 
-                case "ブランチ作成":
+                case AppConstants.Action.CreateBranch:
                     if (string.IsNullOrWhiteSpace(branchName))
                     {
                         Log("新しいブランチ名を入力してください。", Brushes.OrangeRed);
@@ -256,7 +260,7 @@ namespace GitManagerApp
                     Log(GitExecutor.Run($"checkout -b {branchName}", targetDir, out _));
                     break;
 
-                case "ブランチマージ":
+                case AppConstants.Action.BranchMerge:
                     if (string.IsNullOrWhiteSpace(branchName))
                     {
                         Log("マージするブランチ名を入力してください。", Brushes.OrangeRed);
@@ -265,14 +269,14 @@ namespace GitManagerApp
                     Log(GitExecutor.Run($"merge {branchName}", targetDir, out _));
                     break;
 
-                case "削除済みリモートブランチの削除":
+                case AppConstants.Action.DeleteRemoteBranch:
                     Log(GitExecutor.Run("fetch --prune", targetDir, out _));
                     Log("リポジトリの削除済みリモートブランチをローカルから削除しました。", Brushes.LightGreen);
                     Log("ブランチ一覧を更新します。", Brushes.LightGreen);
                     Log(GitExecutor.Run("branch && git branch -r", targetDir, out _));
                     break;
 
-                case "一時変更破棄(pull前)":
+                case AppConstants.Action.TempBeforePull:
                     Log(GitExecutor.Run("stash", targetDir, out _));
                     Log(GitExecutor.Run("stash drop", targetDir, out _));
                     Log("一時変更を破棄しました。", Brushes.LightGreen);
@@ -283,7 +287,7 @@ namespace GitManagerApp
                 case "リモートリポジトリURL変更":
                     if (string.IsNullOrWhiteSpace(RemoteUrlBox.Text.Trim()))
                     {
-                        Log("新しいリモートリポジトリURLを入力してください。");
+                        Log("新しいリモートリポジトリURLを入力してください。", Brushes.OrangeRed);
                         return;
                     }
                     Log(GitExecutor.Run($"remote set-url origin {RemoteUrlBox.Text.Trim()}", targetDir, out _));
@@ -305,7 +309,7 @@ namespace GitManagerApp
                     remoteUrl = RemoteUrlBox.Text.Trim();
                     if (string.IsNullOrWhiteSpace(remoteUrl))
                     {
-                        Log("リモートリポジトリURLを入力してください。");
+                        Log("リモートリポジトリURLを入力してください。", Brushes.OrangeRed);
                         return;
                     }
                     Log(GitExecutor.Run($"remote add origin {remoteUrl}", targetDir, out _));
@@ -331,7 +335,7 @@ namespace GitManagerApp
                 case "リモートリポジトリのブランチをローカルに削除":
                     if (string.IsNullOrWhiteSpace(branchName))
                     {
-                        Log("削除するブランチ名を入力してください。");
+                        Log("削除するブランチ名を入力してください。", Brushes.OrangeRed);
                         return;
                     }
                     Log(GitExecutor.Run($"branch -d {branchName}", targetDir, out _));
@@ -402,7 +406,9 @@ namespace GitManagerApp
                 }
             }
         }
+        #endregion
 
+        #region private methods
         private string GetScheduleFilePath() =>
             string.IsNullOrWhiteSpace(ScheduleFilePathBox.Text) ? "pull_push_schedule.json" : ScheduleFilePathBox.Text.Trim();
 
@@ -419,5 +425,6 @@ namespace GitManagerApp
             LogBox.Document.Blocks.Add(paragraph);
             LogBox.ScrollToEnd();
         }
+        #endregion
     }
 }
