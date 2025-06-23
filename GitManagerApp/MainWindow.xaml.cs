@@ -103,7 +103,7 @@ namespace GitManagerApp
             string renameBranchName = RenameBranchBox.Text.Trim();
             string scheduleFilePath = GetScheduleFilePath();
 
-            if (string.IsNullOrWhiteSpace(ScheduleTimeBox.Text))
+            if (selectedAction == "pull + push（PR対応）" && string.IsNullOrWhiteSpace(ScheduleTimeBox.Text))
             {
                 Log("時刻指定がないため、即時実行します。", Brushes.LightGreen);
             }
@@ -187,12 +187,21 @@ namespace GitManagerApp
                         Log(resultLog);
                         Log("更新失敗しました。", Brushes.OrangeRed);
                         Log("現在の変更をStashに格納し、強制的にpullします。", Brushes.OrangeRed);
-                        Log(GitExecutor.Run("stash", targetDir, out _));
-                        Log("一時変更を退避しました。", Brushes.LightGreen);
-                        Log(GitExecutor.Run($"pull origin {AppConstants.DEFAULT_BRANCH}", targetDir, out _));
-                        Log("強制pull完了しました。", Brushes.LightGreen);
-                        Log(GitExecutor.Run("stash pop", targetDir, out _));
-                        Log("一時変更を適用しました。", Brushes.LightGreen);
+                        var resultStashLog = GitExecutor.Run("stash", targetDir, out _);
+                        if (!resultStashLog.Contains("No local changes to save"))
+                        {
+                            Log("一時変更を退避しました。", Brushes.LightGreen);
+                            Log(GitExecutor.Run($"pull origin {AppConstants.DEFAULT_BRANCH}", targetDir, out _));
+                            Log("強制pull完了しました。", Brushes.LightGreen);
+                            Log(GitExecutor.Run("stash pop", targetDir, out _));
+                            Log("一時変更を適用しました。", Brushes.LightGreen);
+                        }
+                        else
+                        {
+                            Log("更新完了しました", Brushes.LightGreen);
+                            Log("リモートリポジトリは最新状態です。", Brushes.LightGreen);
+                        }
+                        
                     }
                     break;
 
