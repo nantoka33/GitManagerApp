@@ -103,8 +103,13 @@ namespace GitManagerApp
             string renameBranchName = RenameBranchBox.Text.Trim();
             string scheduleFilePath = GetScheduleFilePath();
 
-            if (selectedAction == "pull + push（PR対応）" && ScheduleDatePicker.SelectedDate != null)
+            if (string.IsNullOrWhiteSpace(ScheduleTimeBox.Text))
             {
+                Log("時刻指定がないため、即時実行します。", Brushes.LightGreen);
+            }
+            else if (selectedAction == "pull + push（PR対応）" && ScheduleDatePicker.SelectedDate != null)
+            {
+                
                 if (!TimeSpan.TryParse(ScheduleTimeBox.Text.Trim(), out TimeSpan time))
                 {
                     Log("時刻の形式が正しくありません。例: 14:00:00", Brushes.OrangeRed);
