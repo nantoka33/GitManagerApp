@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -22,14 +23,21 @@ namespace GitManagerApp.Const
         public const string DEFAULT_BRANCH = "main";
 
         /// <summary>
+        /// AppData ディレクトリのパス
+        /// </summary>
+        public static string AppDataDir => Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "GitManagerApp");
+
+        /// <summary>
         /// プロジェクトの設定ファイル名
         /// </summary>
-        public const string RecentFilePath = "recent_projects.json";
+        public static string RecentFilePath => Path.Combine(AppDataDir ?? string.Empty, "recent_projects.json");
 
         /// <summary>
         /// 実行予約ファイル名
         /// </summary>
-        public const string ConfigFilePath = "config.json";
+        public static string ConfigFilePath => Path.Combine(AppDataDir ?? string.Empty, "config.json");
 
         public class Action
         {

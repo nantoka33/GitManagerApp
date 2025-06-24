@@ -61,8 +61,9 @@
 
                 <WrapPanel Margin="0,0,0,10">
                     <Button Content="実行" Click="Execute_Click" Width="100" Height="30" Margin="0,0,10,0" Background="#0e639c" Foreground="White" />
-                    <Button Content="予約一覧表示" Click="ShowSchedule_Click" Width="150" Height="30" Margin="0,0,10,0" Background="#0e639c" Foreground="White" />
-                    <Button Content="未実行予約をすべて削除" Click="ClearUnexecutedSchedules_Click" Width="200" Height="30" Background="#c53c3c" Foreground="White" />
+                    <Button Content="削除ブランチコピー" Click="DeleteCopy_Click" Width="125" Height="30" Margin="0,0,10,0" Background="#0e639c" Foreground="White" />
+                    <Button Content="予約一覧表示" Click="ShowSchedule_Click" Width="100" Height="30" Margin="0,0,10,0" Background="#0e639c" Foreground="White" />
+                    <Button Content="未実行予約をすべて削除" Click="ClearUnexecutedSchedules_Click" Width="150" Height="30" Background="#c53c3c" Foreground="White" />
                 </WrapPanel>
 
                 <TextBlock Text="プロジェクトフィルター（空欄は全件表示）" />

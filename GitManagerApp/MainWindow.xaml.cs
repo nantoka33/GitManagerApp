@@ -31,6 +31,12 @@ namespace GitManagerApp
         public MainWindow()
         {
             InitializeComponent();
+            if (!Directory.Exists(AppConstants.AppDataDir))
+            {
+                Directory.CreateDirectory(AppConstants.AppDataDir);
+            }
+            Log(AppConstants.ConfigFilePath);
+            Log(AppConstants.RecentFilePath);
             configService = new ConfigService(AppConstants.ConfigFilePath);
             recentProjectService = new RecentProjectService(AppConstants.RecentFilePath);
             scheduleTimer = new DispatcherTimer
@@ -50,6 +56,10 @@ namespace GitManagerApp
                 ScheduleFilePathBox.Text = config.ScheduleFilePath;
 
             recentProjectService.PopulateComboBox(ProjectComboBox);
+            foreach (var p in recentProjectService.Projects)
+            {
+                Log($"読み込んだプロジェクト: {p}", Brushes.LightBlue);
+            }
 
             scheduleManager = new ScheduleManager(GetScheduleFilePath());
             schedules = scheduleManager.Load();
@@ -440,5 +450,14 @@ namespace GitManagerApp
             LogBox.ScrollToEnd();
         }
         #endregion
+
+        private void DeleteCopy_Click(object sender, RoutedEventArgs e)
+        {
+            var branchName = BranchNameBox.Text.Trim();
+            if (!string.IsNullOrWhiteSpace(branchName))
+            {
+                DeleteBranchBox.Text = branchName;
+            }
+        }
     }
 }
