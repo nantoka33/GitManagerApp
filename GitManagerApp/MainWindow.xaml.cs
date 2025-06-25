@@ -10,6 +10,7 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
 using System.Windows.Threading;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace GitManagerApp
 {
@@ -451,6 +452,11 @@ namespace GitManagerApp
         }
         #endregion
 
+        /// <summary>
+        /// 削除するブランチ名をコピーするボタンのクリックイベントハンドラ
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void DeleteCopy_Click(object sender, RoutedEventArgs e)
         {
             var branchName = BranchNameBox.Text.Trim();
@@ -458,6 +464,71 @@ namespace GitManagerApp
             {
                 DeleteBranchBox.Text = branchName;
             }
+        }
+
+        /// <summary>
+        /// 現在の日時を設定するボタンのクリックイベントハンドラ
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void NowTime_Click(object sender, RoutedEventArgs e)
+        {
+            var now = DateTime.Now;
+            ScheduleDatePicker.SelectedDate = now.Date;
+            ScheduleTimeBox.Text = "";
+            Log($"現在の日時を設定しました: {now:yyyy-MM-dd HH:mm:ss}", Brushes.LightGreen);
+        }
+
+        /// <summary>
+        /// 3分後の日時を設定するボタンのクリックイベントハンドラ
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void ThreeMTime_Click(object sender, RoutedEventArgs e)
+        {
+            var now = DateTime.Now;
+            ScheduleDatePicker.SelectedDate = now.Date;
+            ScheduleTimeBox.Text = now.AddMinutes(3).ToString("HH:mm:ss");
+            Log($"3分後の日時を設定しました: {now.AddMinutes(3):yyyy-MM-dd HH:mm:ss}", Brushes.LightGreen);
+        }
+
+        /// <summary>
+        /// 30分後の日時を設定するボタンのクリックイベントハンドラ
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void HarfHTime_Click(object sender, RoutedEventArgs e)
+        {
+            var now = DateTime.Now;
+            ScheduleDatePicker.SelectedDate = now.Date;
+            ScheduleTimeBox.Text = now.AddMinutes(30).ToString("HH:mm:ss");
+            Log($"30分後の日時を設定しました: {now.AddMinutes(30):yyyy-MM-dd HH:mm:ss}", Brushes.LightGreen);
+        }
+
+        /// <summary>
+        /// 1時間後の日時を設定するボタンのクリックイベントハンドラ
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void HTime_Click(object sender, RoutedEventArgs e)
+        {
+            var now = DateTime.Now;
+            ScheduleDatePicker.SelectedDate = now.Date;
+            ScheduleTimeBox.Text = now.AddHours(1).ToString("HH:mm:ss");
+            Log($"1時間後の日時を設定しました: {now.AddHours(1):yyyy-MM-dd HH:mm:ss}", Brushes.LightGreen);
+        }
+
+        /// <summary>
+        /// 1日後の日時を設定するボタンのクリックイベントハンドラ
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void OneDTime_Click(object sender, RoutedEventArgs e)
+        {
+            var now = DateTime.Now;
+            ScheduleDatePicker.SelectedDate = now.AddDays(1).Date;
+            ScheduleTimeBox.Text = "01:00:00";
+            Log($"1日後の日時を設定しました: {now.AddDays(1):yyyy-MM-dd HH:mm:ss}", Brushes.LightGreen);
         }
     }
 }

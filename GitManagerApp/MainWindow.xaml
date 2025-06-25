@@ -5,7 +5,7 @@
         Loaded="Window_Loaded"
         Background="#1e1e1e"
         Foreground="White"
-        MinWidth="1000">
+        MinWidth="1200">
     <Grid Margin="10">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="3*" />
@@ -14,7 +14,7 @@
 
         <!-- 左側：メイン操作パネル -->
         <ScrollViewer VerticalScrollBarVisibility="Auto" Grid.Column="0">
-            <StackPanel Margin="0,0,10,20">
+            <StackPanel Margin="10,10,10,20">
                 <TextBlock Text="プロジェクト名 (履歴付き)" Margin="0,5,0,0" />
                 <ComboBox x:Name="ProjectComboBox" IsEditable="True" Margin="0,0,0,10" />
 
@@ -48,7 +48,12 @@
 
                 <TextBlock Text="pull+push 実行日時" />
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                    <DatePicker x:Name="ScheduleDatePicker" Width="150" Background="#2d2d30" Foreground="White">
+                    <Button Content="即時" Click="NowTime_Click" Width="50" Height="20" Margin="0,10,10,0" Background="#0e639c" Foreground="White" />
+                    <Button Content="3分後" Click="ThreeMTime_Click" Width="50" Height="20" Margin="0,10,10,0" Background="#0e639c" Foreground="White" />
+                    <Button Content="30分後" Click="HarfHTime_Click" Width="50" Height="20" Margin="0,10,10,0" Background="#0e639c" Foreground="White" />
+                    <Button Content="1時間後" Click="HTime_Click" Width="50" Height="20" Margin="0,10,10,0" Background="#0e639c" Foreground="White" />
+                    <Button Content="翌日" Click="OneDTime_Click" Width="50" Height="20" Margin="0,10,10,0" Background="#0e639c" Foreground="White" />
+                    <DatePicker x:Name="ScheduleDatePicker" Width="150" Margin="20,10,10,0" Background="#2d2d30" Foreground="White">
                         <DatePicker.Resources>
                             <Style TargetType="DatePickerTextBox">
                                 <Setter Property="Foreground" Value="White" />
@@ -56,7 +61,7 @@
                             </Style>
                         </DatePicker.Resources>
                     </DatePicker>
-                    <TextBox x:Name="ScheduleTimeBox" Width="100" Margin="10,0,0,0" Text="HH:mm:ss" Background="#252526" Foreground="White" />
+                    <TextBox x:Name="ScheduleTimeBox" Width="100" Margin="10,10,0,0" Text="HH:mm:ss" Background="#252526" Foreground="White" />
                 </StackPanel>
 
                 <WrapPanel Margin="0,0,0,10">
@@ -75,7 +80,7 @@
         </ScrollViewer>
 
         <!-- 右側：削除欄とログ -->
-        <StackPanel Grid.Column="1">
+        <StackPanel Grid.Column="1" Margin="10,10,10,20">
             <TextBlock Text="削除するブランチ名" Margin="0,0,0,5" />
             <TextBox x:Name="DeleteBranchBox" Margin="0,0,0,10" Background="#252526" Foreground="White" />
 
