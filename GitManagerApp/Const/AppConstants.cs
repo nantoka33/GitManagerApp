@@ -39,6 +39,9 @@ namespace GitManagerApp.Const
         /// </summary>
         public static string ConfigFilePath => Path.Combine(AppDataDir ?? string.Empty, "config.json");
 
+        /// <summary>
+        /// アクション名を定義するクラス
+        /// </summary>
         public class Action
         {
             /// <summary>
