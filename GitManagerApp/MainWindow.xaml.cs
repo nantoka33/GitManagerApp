@@ -229,7 +229,7 @@ namespace GitManagerApp
                     Log(GitExecutor.Run("add .", targetDir, out _));
                     Log(GitExecutor.Run($"commit -m \"{commitMessage}\"", targetDir, out _));
                     var pushResult = GitExecutor.Run($"push -u origin {branchName}", targetDir, out _);
-                    if (pushResult.Contains("changed"))
+                    if (pushResult.Contains("set up to track"))
                     {
                         Log(pushResult);
                         Log("プッシュに成功しました。", Brushes.LightGreen);
