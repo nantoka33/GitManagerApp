@@ -160,59 +160,116 @@ namespace GitManagerApp
                         Log("リモートリポジトリURLを入力してください。", Brushes.OrangeRed);
                         return;
                     }
-                    Log(GitExecutor.Run($"init && git add . && git commit -m \"{commitMessage}\" && git remote add origin {remoteUrl} && git branch -M {AppConstants.DEFAULT_BRANCH} && git push -u origin {AppConstants.DEFAULT_BRANCH}", targetDir, out _));
-                    break;
-
-                case AppConstants.Action.NormalPull:
-                    Log(GitExecutor.Run($"checkout {AppConstants.DEFAULT_BRANCH}", targetDir, out _));
-                    var resultLog = GitExecutor.Run($"pull origin {AppConstants.DEFAULT_BRANCH}", targetDir, out _);
-                    if (resultLog.Contains("Fast-forward"))
+                    
+                    var initResult = GitExecutor.RunWithResult("init", targetDir);
+                    Log(initResult.FullMessage, initResult.IsSuccess ? null : Brushes.OrangeRed);
+                    
+                    var addAllResult = GitExecutor.RunWithResult("add .", targetDir);
+                    Log(addAllResult.FullMessage, addAllResult.IsSuccess ? null : Brushes.OrangeRed);
+                    
+                    var commitResult = GitExecutor.RunWithResult($"commit -m \"{commitMessage}\"", targetDir);
+                    Log(commitResult.FullMessage, commitResult.IsSuccess ? null : Brushes.OrangeRed);
+                    
+                    var remoteAddResult = GitExecutor.RunWithResult($"remote add origin {remoteUrl}", targetDir);
+                    Log(remoteAddResult.FullMessage, remoteAddResult.IsSuccess ? null : Brushes.OrangeRed);
+                    
+                    var branchResult = GitExecutor.RunWithResult($"branch -M {AppConstants.DEFAULT_BRANCH}", targetDir);
+                    Log(branchResult.FullMessage, branchResult.IsSuccess ? null : Brushes.OrangeRed);
+                    
+                    var pushResult = GitExecutor.RunWithResult($"push -u origin {AppConstants.DEFAULT_BRANCH}", targetDir);
+                    Log(pushResult.FullMessage, pushResult.IsSuccess ? Brushes.LightGreen : Brushes.OrangeRed);
+                    
+                    if (pushResult.IsSuccess)
                     {
-                        Log(resultLog);
-                        Log("更新完了しました", Brushes.LightGreen);
-                        Log("リモートリポジトリは最新状態です。", Brushes.LightGreen);
-                    }
-                    else if (resultLog.Contains("Already up to date."))
-                    {
-                        Log(resultLog);
-                        Log("リモートリポジトリは最新状態です。", Brushes.LightGreen);
+                        Log("初回プッシュに成功しました。", Brushes.LightGreen);
                     }
                     else
                     {
-                        Log(resultLog);
+                        Log("初回プッシュに失敗しました。", Brushes.OrangeRed);
+                    }
+                    break;
+
+                case AppConstants.Action.NormalPull:
+                    var checkoutMainResult = GitExecutor.RunWithResult($"checkout {AppConstants.DEFAULT_BRANCH}", targetDir);
+                    Log(checkoutMainResult.FullMessage, checkoutMainResult.IsSuccess ? null : Brushes.OrangeRed);
+                    
+                    var pullResult = GitExecutor.RunWithResult($"pull origin {AppConstants.DEFAULT_BRANCH}", targetDir);
+                    Log(pullResult.FullMessage);
+                    
+                    if (pullResult.IsSuccess)
+                    {
+                        if (pullResult.Output.Contains("Fast-forward"))
+                        {
+                            Log("更新完了しました", Brushes.LightGreen);
+                            Log("リモートリポジトリは最新状態です。", Brushes.LightGreen);
+                        }
+                        else if (pullResult.Output.Contains("Already up to date."))
+                        {
+                            Log("リモートリポジトリは最新状態です。", Brushes.LightGreen);
+                        }
+                        else
+                        {
+                            Log("更新が完了しました。", Brushes.LightGreen);
+                        }
+                    }
+                    else
+                    {
                         Log("更新失敗しました。", Brushes.OrangeRed);
                     }
                     break;
 
                 case AppConstants.Action.ForcePull:
-                    Log(GitExecutor.Run($"checkout {AppConstants.DEFAULT_BRANCH}", targetDir, out _));
-                    resultLog = GitExecutor.Run($"pull origin {AppConstants.DEFAULT_BRANCH}", targetDir, out _);
-                    if (resultLog.Contains("Fast-forward"))
+                    var forceCheckoutResult = GitExecutor.RunWithResult($"checkout {AppConstants.DEFAULT_BRANCH}", targetDir);
+                    Log(forceCheckoutResult.FullMessage, forceCheckoutResult.IsSuccess ? null : Brushes.OrangeRed);
+                    
+                    var forcePullResult = GitExecutor.RunWithResult($"pull origin {AppConstants.DEFAULT_BRANCH}", targetDir);
+                    Log(forcePullResult.FullMessage);
+                    
+                    if (forcePullResult.IsSuccess)
                     {
-                        Log(resultLog);
-                        Log("更新完了しました", Brushes.LightGreen);
-                        Log("リモートリポジトリは最新状態です。", Brushes.LightGreen);
-                    }
-                    else
-                    {
-                        Log(resultLog);
-                        Log("更新失敗しました。", Brushes.OrangeRed);
-                        Log("現在の変更をStashに格納し、強制的にpullします。", Brushes.OrangeRed);
-                        var resultStashLog = GitExecutor.Run("stash", targetDir, out _);
-                        if (!resultStashLog.Contains("No local changes to save"))
-                        {
-                            Log("一時変更を退避しました。", Brushes.LightGreen);
-                            Log(GitExecutor.Run($"pull origin {AppConstants.DEFAULT_BRANCH}", targetDir, out _));
-                            Log("強制pull完了しました。", Brushes.LightGreen);
-                            Log(GitExecutor.Run("stash pop", targetDir, out _));
-                            Log("一時変更を適用しました。", Brushes.LightGreen);
-                        }
-                        else
+                        if (forcePullResult.Output.Contains("Fast-forward"))
                         {
                             Log("更新完了しました", Brushes.LightGreen);
                             Log("リモートリポジトリは最新状態です。", Brushes.LightGreen);
                         }
-                        
+                        else
+                        {
+                            Log("更新失敗しました。", Brushes.OrangeRed);
+                            Log("現在の変更をStashに格納し、強制的にpullします。", Brushes.OrangeRed);
+                            
+                            var stashResult = GitExecutor.RunWithResult("stash", targetDir);
+                            Log(stashResult.FullMessage, stashResult.IsSuccess ? null : Brushes.OrangeRed);
+                            
+                            if (!stashResult.Output.Contains("No local changes to save"))
+                            {
+                                Log("一時変更を退避しました。", Brushes.LightGreen);
+                                
+                                var forcePullAfterStash = GitExecutor.RunWithResult($"pull origin {AppConstants.DEFAULT_BRANCH}", targetDir);
+                                Log(forcePullAfterStash.FullMessage, forcePullAfterStash.IsSuccess ? Brushes.LightGreen : Brushes.OrangeRed);
+                                
+                                if (forcePullAfterStash.IsSuccess)
+                                {
+                                    Log("強制pull完了しました。", Brushes.LightGreen);
+                                    
+                                    var stashPopResult = GitExecutor.RunWithResult("stash pop", targetDir);
+                                    Log(stashPopResult.FullMessage, stashPopResult.IsSuccess ? null : Brushes.OrangeRed);
+                                    
+                                    if (stashPopResult.IsSuccess)
+                                    {
+                                        Log("一時変更を適用しました。", Brushes.LightGreen);
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                Log("更新完了しました", Brushes.LightGreen);
+                                Log("リモートリポジトリは最新状態です。", Brushes.LightGreen);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        Log("更新失敗しました。", Brushes.OrangeRed);
                     }
                     break;
 
@@ -224,24 +281,47 @@ namespace GitManagerApp
                     }
                     if (!branchName.StartsWith("feature/"))
                         branchName = "feature/" + branchName;
-                    Log(GitExecutor.Run("fetch origin", targetDir, out _));
-                    Log(GitExecutor.Run($"checkout -b {branchName}", targetDir, out _));
-                    Log(GitExecutor.Run("add .", targetDir, out _));
-                    Log(GitExecutor.Run($"commit -m \"{commitMessage}\"", targetDir, out _));
-                    var pushResult = GitExecutor.Run($"push -u origin {branchName}", targetDir, out _);
-                    if (pushResult.Contains("set up to track"))
+                    
+                    // fetch origin
+                    var pullPushFetchResult = GitExecutor.RunWithResult("fetch origin", targetDir);
+                    Log(pullPushFetchResult.FullMessage, pullPushFetchResult.IsSuccess ? null : Brushes.OrangeRed);
+                    
+                    // checkout -b branchName
+                    var pullPushCheckoutResult = GitExecutor.RunWithResult($"checkout -b {branchName}", targetDir);
+                    Log(pullPushCheckoutResult.FullMessage, pullPushCheckoutResult.IsSuccess ? null : Brushes.OrangeRed);
+                    
+                    // add .
+                    var pullPushAddResult = GitExecutor.RunWithResult("add .", targetDir);
+                    Log(pullPushAddResult.FullMessage, pullPushAddResult.IsSuccess ? null : Brushes.OrangeRed);
+                    
+                    // commit
+                    var pullPushCommitResult = GitExecutor.RunWithResult($"commit -m \"{commitMessage}\"", targetDir);
+                    Log(pullPushCommitResult.FullMessage, pullPushCommitResult.IsSuccess ? null : Brushes.OrangeRed);
+                    
+                    // push -u origin branchName
+                    var pullPushPushResult = GitExecutor.RunWithResult($"push -u origin {branchName}", targetDir);
+                    
+                    // push結果の詳細な判定
+                    if (pullPushPushResult.IsSuccess)
                     {
-                        Log(pushResult);
-                        Log("プッシュに成功しました。", Brushes.LightGreen);
-                    }
-                    else if (pushResult.Contains("Everything up-to-date"))
-                    {
-                        Log(pushResult);
-                        Log("リモートリポジトリは最新状態です。", Brushes.LightGreen);
+                        Log(pullPushPushResult.FullMessage);
+                        if (pullPushPushResult.Output.Contains("set up to track") || 
+                            pullPushPushResult.Output.Contains("Branch '") && pullPushPushResult.Output.Contains("' set up to track"))
+                        {
+                            Log("プッシュに成功しました。", Brushes.LightGreen);
+                        }
+                        else if (pullPushPushResult.Output.Contains("Everything up-to-date"))
+                        {
+                            Log("リモートリポジトリは最新状態です。", Brushes.LightGreen);
+                        }
+                        else
+                        {
+                            Log("プッシュに成功しました。", Brushes.LightGreen);
+                        }
                     }
                     else
                     {
-                        Log(pushResult, Brushes.OrangeRed);
+                        Log(pullPushPushResult.FullMessage, Brushes.OrangeRed);
                         Log("プッシュに失敗しました。", Brushes.OrangeRed);
                     }
                     break;
@@ -379,12 +459,44 @@ namespace GitManagerApp
             foreach (var s in toRun)
             {
                 Log($"スケジュール実行: {s.ProjectName} / {s.BranchName}", Brushes.LightGreen);
-                Log(GitExecutor.Run("fetch origin", s.TargetDir, out _));
-                Log(GitExecutor.Run($"checkout -b {s.BranchName}", s.TargetDir, out _));
-                Log(GitExecutor.Run("add .", s.TargetDir, out _));
-                Log(GitExecutor.Run($"commit -m \"{s.CommitMessage}\"", s.TargetDir, out _));
-                Log(GitExecutor.Run($"push -u origin {s.BranchName}", s.TargetDir, out _));
-                s.Executed = true;
+                
+                bool allSuccess = true;
+                
+                // fetch origin
+                var scheduleFetchResult = GitExecutor.RunWithResult("fetch origin", s.TargetDir);
+                Log(scheduleFetchResult.FullMessage, scheduleFetchResult.IsSuccess ? null : Brushes.OrangeRed);
+                if (!scheduleFetchResult.IsSuccess) allSuccess = false;
+                
+                // checkout -b branchName
+                var scheduleCheckoutResult = GitExecutor.RunWithResult($"checkout -b {s.BranchName}", s.TargetDir);
+                Log(scheduleCheckoutResult.FullMessage, scheduleCheckoutResult.IsSuccess ? null : Brushes.OrangeRed);
+                if (!scheduleCheckoutResult.IsSuccess) allSuccess = false;
+                
+                // add .
+                var scheduleAddResult = GitExecutor.RunWithResult("add .", s.TargetDir);
+                Log(scheduleAddResult.FullMessage, scheduleAddResult.IsSuccess ? null : Brushes.OrangeRed);
+                if (!scheduleAddResult.IsSuccess) allSuccess = false;
+                
+                // commit
+                var scheduleCommitResult = GitExecutor.RunWithResult($"commit -m \"{s.CommitMessage}\"", s.TargetDir);
+                Log(scheduleCommitResult.FullMessage, scheduleCommitResult.IsSuccess ? null : Brushes.OrangeRed);
+                if (!scheduleCommitResult.IsSuccess) allSuccess = false;
+                
+                // push -u origin branchName
+                var schedulePushResult = GitExecutor.RunWithResult($"push -u origin {s.BranchName}", s.TargetDir);
+                Log(schedulePushResult.FullMessage, schedulePushResult.IsSuccess ? null : Brushes.OrangeRed);
+                if (!schedulePushResult.IsSuccess) allSuccess = false;
+                
+                // すべてのコマンドが成功した場合のみ実行済みとする
+                if (allSuccess)
+                {
+                    s.Executed = true;
+                    Log($"スケジュール実行完了: {s.ProjectName} / {s.BranchName}", Brushes.LightGreen);
+                }
+                else
+                {
+                    Log($"スケジュール実行失敗: {s.ProjectName} / {s.BranchName}", Brushes.OrangeRed);
+                }
             }
             scheduleManager?.Save(schedules);
         }
